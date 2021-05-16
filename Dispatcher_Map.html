@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+  <title>Dispatcher_App</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
+  <style>
+    html, body, #map {
+      padding:0;
+      margin:0;
+      height:100%;
+    }
+    #HomeButton {
+      position: absolute;
+      top: 95px;
+      left: 20px;
+      z-index: 50;
+    }
+    #LocateButton {
+      position: absolute;
+      top: 140px;
+      left: 20px;
+      z-index: 50;
+    }
+  </style>
+  <script src="https://js.arcgis.com/3.36/"></script>
+  <script>
+
+    require([
+      "dojo/dom",
+      "dojo/on",
+      "esri/map", 
+      "esri/dijit/HomeButton",
+      "esri/layers/FeatureLayer",
+      "esri/arcgis/Portal",
+      "esri/arcgis/OAuthInfo",
+      "esri/IdentityManager",
+      "dojo/domReady!"
+    ], function(dom, on,Map, HomeButton, FeatureLayer,arcgisPortal,OAuthInfo,esriId)  {
+
+      var info = new OAuthInfo({
+        appId: "HgMfBThXlSdSrKgC" //localhost
+        // Uncomment the next line and update if using your own portal
+        //portalUrl: "https://<host>:<port>/arcgis"
+        // Uncomment the next line to prevent the user's signed in state from being shared
+        // with other apps on the same domain with the same authNamespace value.
+        //authNamespace: "portal_oauth_popup",
+        //popup: true
+      });
+      esriId.registerOAuthInfos([info]);
+
+      //Affichage de la carte 
+      var map = new Map("map", {
+        center: [10, 35],  // les références de la Tunidsie
+        zoom: 7,
+        basemap: "topo"
+      });
+
+
+      //Création de le bouton  Home      
+      var home = new HomeButton({
+        map: map
+      }, "HomeButton");
+      home.startup();
+
+      var featureLayer = new FeatureLayer("https://services8.arcgis.com/fM0eo5ptjcKgJViW/arcgis/rest/services/workforce_ceea173740504353aa50e5cc6a3b33b8/FeatureServer/1"); /* ici on a utilisé le lien fourni avec la couche "workers" dans notre répertoire "Dispatching ambulance", dans le but de faire un simple affichage comme une première étape*/
+            map.addLayer(featureLayer);
+    });
+
+   //création du bouton locate
+    require (["esri/dijit/LocateButton"], 
+      function (LocateButton){
+
+        geoLocate = new LocateButton({
+          map: map
+        }, "LocateButton");
+        geoLocate.startup();
+      }) ; 
+
+
+  </script>
+</head>
+<body>
+  <div id="map" class="map">
+    <div id="LocateButton"></div>
+    <div id="HomeButton"></div>
+  </div>
+</body>
+</html>
