@@ -1,0 +1,58 @@
+html, body, #map {
+    padding:0;
+    margin:0;
+    height:100%;
+  }
+  #HomeButton {
+    position: absolute;
+    top: 95px;
+    left: 20px;
+    z-index: 50;
+  }
+  #LocateButton {
+    position: absolute;
+    top: 140px;
+    left: 20px;
+    z-index: 50;
+  }
+
+  #anonymousPanel #personalizedPanel {
+    position: relative;
+  }
+  
+  .esri-item-gallery .esri-item-container {
+    float: left;
+    text-align: center;
+    padding: 10px;
+    width: 204px;
+    display: inline-block;
+  }
+
+  .esri-item-gallery .esri-image {
+    width: 200px;
+    height: 133px;
+    border: 2px solid gray;
+    border-radius: 5px;
+  }
+
+  .esri-item-gallery .esri-null-image {
+    line-height: 133px;
+    text-align: center;
+    color: #999999;
+  }
+
+  .esri-item-gallery .esri-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .esri-item-gallery .esri-null-title {
+    color: #999999;
+  }
+
+  .action {
+    color: blue;
+    cursor: pointer;
+    text-decoration: underline;
+  }
