@@ -13,8 +13,8 @@
   <script>
     var map, params;
     require([
-     "esri/tasks/DistanceParameters",
-      "esri/tasks/GeometryService",
+     
+      "esri/geometry/geometryEngine",
       "dojo/dom",
       "dojo/_base/array",
       "esri/Color",
@@ -57,7 +57,7 @@
 
       "dojo/domReady!"
     ], function(
-      DistanceParameters,GeometryService, dom, array, Color, parser, registry,
+      geometryEngine, dom, array, Color, parser, registry,
       Map, esriLang, Graphic, InfoTemplate, GraphicsLayer,FeatureLayer, SimpleRenderer,
       Point, FeatureSet,
       ClosestFacilityTask, ClosestFacilityParameters,
@@ -162,24 +162,18 @@
       }
 
       function findClosestAmbulance (inPoint , ambulanceFeatures) {
-        var geometryService = new GeometryService("http://utility.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer");      
-        var distParams = new DistanceParameters(); 
-        distParams.distanceUnit = GeometryService.UNIT_KILOMETER;
-        distParams.geometry1 = inPoint;
-        distParams.geodesic = true;
         var minDistance = Infinity;
-
+        var distance ; 
         var x =  0;
         while (x < ambulanceFeatures.length) {
-          distParams.geometry2 = ambulanceFeatures[x].geometry;
-          distance= geometryService.distance(distParams , function(distance){  
-            if ( distance < minDistance) {
-               minDistance = distance;
-               console.log( minDistance);
-             }
-           })
+          distance= geometryEngine.distance(inPoint , ambulanceFeatures[x].geometry , "kilometers" );
+          if ( distance < minDistance) {
+            minDistance = distance;
+            console.log( minDistance);
+          }
           x++ 
-        } 
+        }
+        console.log("this is it voilà", minDistance); 
 
       }
     });
