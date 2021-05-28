@@ -6,8 +6,8 @@
   <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
   <title>Closest Facilities</title>
 
-  <link rel="stylesheet" href="styles/style.css">
   <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
+  <link rel="stylesheet" href="styles/style.css">
   
   <script src="https://js.arcgis.com/3.36/"></script>
   <script>
@@ -87,7 +87,7 @@
         showInfoWindowOnClick: false
       });
 
-      var ambulanceLayer = new FeatureLayer ("https://services8.arcgis.com/fM0eo5ptjcKgJViW/arcgis/rest/services/hopitaux_cliniques/FeatureServer/0" , {
+      var ambulanceLayer = new FeatureLayer ("https://services8.arcgis.com/fM0eo5ptjcKgJViW/arcgis/rest/services/workforce_ceea173740504353aa50e5cc6a3b33b8/FeatureServer/1" , {
         
         id: "ambulance",
         mode: FeatureLayer.MODE_SNAPSHOT,
@@ -164,16 +164,34 @@
       function findClosestAmbulance (inPoint , ambulanceFeatures) {
         var minDistance = Infinity;
         var distance ; 
+        var closestAmbulance = 0 ; 
+        var buffer =  geometryEngine.geodesicBuffer(inPoint, 50 , "kilometers") ; 
+        var closestAmbulances = [] ; 
+        
+        for (i =0 ; i< ambulanceFeatures.length ; i++){
+          if ( geometryEngine.contains(buffer , ambulanceFeatures[i].geometry )  ) {
+            closestAmbulances.push(ambulanceFeatures[i])
+          }
+
+        };
+
         var x =  0;
-        while (x < ambulanceFeatures.length) {
-          distance= geometryEngine.distance(inPoint , ambulanceFeatures[x].geometry , "kilometers" );
-          if ( distance < minDistance) {
+
+        while (x < closestAmbulances.length) {
+          distance= geometryEngine.distance(inPoint , closestAmbulances[x].geometry , "kilometers" );
+          if ( distance < minDistance && ambulanceFeatures[x].attributes.status == 2 ) { // status == 0 => ne travaille pas , status == 1 => travail , status == 2 => en pause: so we will consider the status == 2 as the one refering to a free(libre) ambance
             minDistance = distance;
-            console.log( minDistance);
+            closestAmbulance = closestAmbulances[x]; 
           }
           x++ 
         }
-        console.log("this is it voilà", minDistance); 
+
+        if (closestAmbulance === 0 ) {
+          console.log("no ambulance is available ")
+        } else {
+          console.log(closestAmbulance)
+        }
+       
 
       }
     });
@@ -181,9 +199,10 @@
 </head>
 
 <body>
+  
   <div id="map" class="map">
+
     <div id="search"></div>
-    <div id="LocateButton"></div>
     <div id="HomeButton"></div>
 
   </div>
