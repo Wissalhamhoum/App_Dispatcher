@@ -1,14 +1,27 @@
 require([
-    "dojo/dom",
-    "dojo/on",
-    "esri/map", 
-    "esri/dijit/HomeButton",
-    "esri/layers/FeatureLayer",
     "esri/arcgis/Portal",
     "esri/arcgis/OAuthInfo",
     "esri/IdentityManager",
-    "dojo/domReady!"
-  ], function(dom, on,Map, HomeButton, FeatureLayer,arcgisPortal,OAuthInfo,esriId)  {
+    "dojo/dom-style",
+    "dojo/dom-attr",
+    "dojo/dom",
+    "dojo/on",
+    "dojo/_base/array",
+    "dojo/domReady!","esri/map", 
+    "esri/dijit/HomeButton",
+    "esri/layers/FeatureLayer",
+  ], function (arcgisPortal, OAuthInfo, esriId,
+    domStyle, domAttr, dom, on, arrayUtils,Map, HomeButton, FeatureLayer){
+    var info = new OAuthInfo({
+      appId: "q244Lb8gDRgWQ8hM",
+      // Uncomment the next line and update if using your own portal
+      // portalUrl: "https://<host>:<port>/arcgis",
+      // Uncomment the next line to prevent the user's signed in state from being shared
+      // with other apps on the same domain with the same authNamespace value.
+      //authNamespace: "portal_oauth_inline",
+      popup: false
+    });
+    esriId.registerOAuthInfos([info]);
 
     //Affichage de la carte 
     var map = new Map("map", {
