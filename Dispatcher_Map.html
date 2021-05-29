@@ -1,48 +1,72 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  
   <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
-  <title>Dispatcher_App</title>
+  <title>Closest Facilities</title>
+
   <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
   <link rel="stylesheet" href="styles/style.css">
-  <script>
-    var dojoConfig = {
-      has: {
-        "esri-featurelayer-webgl": 1
-      }
-    };
-  </script>
+  
   <script src="https://js.arcgis.com/3.36/"></script>
   <script>
-
+    var map, params;
     require([
+     
+      "esri/geometry/geometryEngine",
       "dojo/dom",
-      "dojo/on",
-      "esri/map", 
-      "esri/dijit/HomeButton",
+      "dojo/_base/array",
+      "esri/Color",
+      "dojo/parser",
+      "dijit/registry",
+
+      "esri/map",
+      "esri/dijit/Search",
+      "esri/lang",
+      "esri/graphic",
+      "esri/InfoTemplate",
+      "esri/layers/GraphicsLayer",
       "esri/layers/FeatureLayer",
+      "esri/renderers/SimpleRenderer",
+
+      "esri/geometry/Point",
+      "esri/tasks/FeatureSet",
+
+      "esri/tasks/ClosestFacilityTask",
+      "esri/tasks/ClosestFacilityParameters",
+
+      "esri/symbols/SimpleMarkerSymbol",
+      "esri/symbols/SimpleLineSymbol",
+
       "esri/arcgis/Portal",
       "esri/arcgis/OAuthInfo",
       "esri/IdentityManager",
-      "dojo/dom-style",
-      "dojo/dom-attr",
-      "dojo/_base/array",
-      "esri/dijit/Search",
-      "esri/layers/StreamLayer",
+
       "esri/tasks/query",
-      "esri/geometry/Circle",
-      "esri/graphic",
-      "esri/symbols/SimpleMarkerSymbol",
-      "esri/symbols/SimpleLineSymbol",
-      "esri/symbols/SimpleFillSymbol",
-      "esri/renderers/SimpleRenderer",
-      "esri/config",
-      "esri/Color",
-      "dojo/domReady!",
-      
-    ], function(dom, on,Map, HomeButton, 
-                FeatureLayer,arcgisPortal,OAuthInfo,esriId , domStyle, domAttr , arrayUtils, Search)  {
+
+      "dijit/form/ComboBox",
+      "dijit/layout/BorderContainer",
+      "dijit/layout/ContentPane",
+
+      "dojo/_base/json",
+
+      "dojo/promise/all",
+      "dojox/gfx/fx",
+
+      "dojo/domReady!"
+    ], function(
+      geometryEngine, dom, array, Color, parser, registry,
+      Map,Search, esriLang, Graphic, InfoTemplate, GraphicsLayer,FeatureLayer, SimpleRenderer,
+      Point, FeatureSet,
+      ClosestFacilityTask, ClosestFacilityParameters,
+      SimpleMarkerSymbol, SimpleLineSymbol,arcgisPortal,OAuthInfo,esriId , Query , dojoJson , 
+       all , fx 
+    ) {
+      var incidentsGraphicsLayer , geoAmbulance ;
+     
+
+      parser.parse();
 
       var info = new OAuthInfo({
         appId: "y62LHg9sepTcEzb0" ,//localhost
@@ -55,37 +79,36 @@
       });
       esriId.registerOAuthInfos([info]);
 
-      //Affichage de la carte 
-      var map = new Map("map", {
-        center: [10, 35],  // les références de la Tunidsie
+      /*** Creating a map ***/
+      map = new Map("map", {
+        center: [10, 35],  // les références de la Tunisie
         zoom: 7,
-        basemap: "topo"
+        basemap: "topo",
+        showInfoWindowOnClick: false
       });
-    
 
-      //Création de le bouton  Home      
-      var home = new HomeButton({
-        map: map
-      }, "HomeButton");
-      home.startup();
-
-      
-
-      var layer = new FeatureLayer ("https://services8.arcgis.com/fM0eo5ptjcKgJViW/arcgis/rest/services/workforce_ceea173740504353aa50e5cc6a3b33b8/FeatureServer/1");
-      map.addLayer(layer); 
- 
-
-
-      //Search bar definition  
       var search = new Search({
-        map: map
-      }, "search");
+          map: map
+        }, "search");
       search.startup();
-      /*
-            map.on("click", mapClickHandler);
+
+      var ambulanceLayer = new FeatureLayer ("https://services8.arcgis.com/fM0eo5ptjcKgJViW/arcgis/rest/services/workforce_ceea173740504353aa50e5cc6a3b33b8/FeatureServer/1" , {
+        
+        id: "ambulance",
+        mode: FeatureLayer.MODE_SNAPSHOT,
+        outFields: ["*"],
+        refreshInterval: 1  /* the layer is refreshed every 1min in order to keep track of the ambulances last location */
+
+      });
+      
+      
+      
+      map.on("click", mapClickHandler);
 
       map.on("load", function(evtObj) {
         var map = evtObj.target;
+
+       /* this creates the symbol of the incident it's ugly but we should cope with it for now */
         var incidentPointSymbol = new SimpleMarkerSymbol(
           SimpleMarkerSymbol.STYLE_CIRCLE,
           16,
@@ -95,11 +118,32 @@
           ),
           new Color([130,159,83,0.40])
         );
+
+         /*the layer containing the location of an incident */ 
         incidentsGraphicsLayer = new GraphicsLayer();
+
         var incidentsRenderer = new SimpleRenderer(incidentPointSymbol);
         incidentsGraphicsLayer.setRenderer(incidentsRenderer);
         map.addLayer(incidentsGraphicsLayer);
+
+        /*the following code querys the graphics of the feature layer so later on we can use the geomtry to calculate the distance */
+        map.addLayer(ambulanceLayer);
+        ambulanceLayer.on ("load", function() {
+          var query = new Query();
+            query.where = "1=1";
+            ambulanceLayer.selectFeatures(query, FeatureLayer.SELECTION_NEW, function(result){
+              console.log( "go ahead this part is fine");
+              geoAmbulance = result //retourne les coordonnées des ambulances
+            }) 
+        });
+
       });
+
+     /*this  is useless for now*/
+      /*registry.byId("numLocations").on("change", function() {
+        params.defaultTargetFacilityCount = this.value;
+        clearGraphics();
+      });*/
 
       function clearGraphics() {
         //clear graphics
@@ -109,47 +153,66 @@
 
       function mapClickHandler(evt) {
         clearGraphics();
-        
         var inPoint = new Point(evt.mapPoint.x, evt.mapPoint.y, map.spatialReference);
         var location = new Graphic(inPoint);
         incidentsGraphicsLayer.add(location);
+        console.log(incidentsGraphicsLayer.graphics[0]);
+        if (ambulanceLayer.loaded) {
+          findClosestAmbulance (inPoint ,geoAmbulance)
+        } else {
+          console.log ("loading"); 
+        }
         map.graphics.enableMouseEvents();
-      };
-*/
+        
+      }
 
+      function findClosestAmbulance (inPoint , ambulanceFeatures) {
+        var minDistance = Infinity;
+        var distance ; 
+        var closestAmbulance = 0 ; 
+        var buffer =  geometryEngine.geodesicBuffer(inPoint, 50 , "kilometers") ; 
+        var closestAmbulances = [] ; 
+        
+        for (i =0 ; i< ambulanceFeatures.length ; i++){
+          if ( geometryEngine.contains(buffer , ambulanceFeatures[i].geometry )  ) {
+            closestAmbulances.push(ambulanceFeatures[i])
+          }
 
-     
+        };
+
+        var x =  0;
+
+        while (x < closestAmbulances.length) {
+          distance= geometryEngine.distance(inPoint , closestAmbulances[x].geometry , "kilometers" );
+          if ( distance < minDistance && ambulanceFeatures[x].attributes.status == 1 ) { // status == 0 => ne travaille pas , status == 1 => travail , status == 2 => en pause: so we will consider the status == 2 as the one refering to a free(libre) ambance
+            minDistance = distance;
+            closestAmbulance = closestAmbulances[x]; 
+          }
+          x++ 
+        }
+
+        if (closestAmbulance === 0 ) {
+          console.log("no ambulance is available ")
+        } else {
+          console.log(closestAmbulance); 
+          console.log("the closest ambulance driver", closestAmbulance.attributes.name); //displayes the name of the selected worker
+          console.log("the selected worker's ID ", closestAmbulance.attributes.OBJECTID);
+          //ambulanceLayer.hide() ;
+          //incidentsGraphicsLayer.add(closestAmbulance);
+        }
+       
+
+      }
     });
-
-   //création du bouton locate
-    require (["esri/dijit/Search"], 
-      function (Search){
-        var search = new Search({
-        map: map
-      }, "search");
-      search.startup();
-      }) ; 
-
-
   </script>
 </head>
+
 <body>
-  <div id ="results"> 
-    <button class="Start  button" type="button">
-      start mission
-    </button>
 
-    <button class="Start button" type="button">
-      stop mission
-    </button>
-
-  </div>
-  <div id="search"></div>
-  <div id="map" class="map panel" data-dojo-type="dijit/layout/ContentPane"
-         data-dojo-props="region:'center'" >
-    <div id="LocateButton"></div>
+  <div id="map" class="map">
+    <div id="search"></div>
     <div id="HomeButton"></div>
   </div>
+
 </body>
 </html>
-

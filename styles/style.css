@@ -1,4 +1,4 @@
-html, body, #map {
+html, body {
     padding:0;
     margin:0;
     height:100%;
@@ -30,6 +30,24 @@ html, body, #map {
     z-index: 2;
     top: 20px;
     left: 74px;
+  }
+
+  
+
+  #personalizedPanel {
+    z-index: 1 !important;
+    position: relative;
+    float: Right;
+    padding: 5px;
+    text-align: center;
+    border-left: 5px  black;
+    height: 10%;
+  }
+
+  .action {
+    color: blue;
+    cursor: pointer;
+    text-decoration: underline;
   }
 
  

@@ -7,6 +7,7 @@
   <title>Closest Facilities</title>
 
   <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
+  <link rel="stylesheet" href="https://js.arcgis.com/3.36compact/dijit/themes/claro/claro.css">
   <link rel="stylesheet" href="styles/style.css">
   
   <script src="https://js.arcgis.com/3.36/"></script>
@@ -15,7 +16,6 @@
     require([
      
       "esri/geometry/geometryEngine",
-      "dojo/dom",
       "dojo/_base/array",
       "esri/Color",
       "dojo/parser",
@@ -42,6 +42,10 @@
       "esri/arcgis/Portal",
       "esri/arcgis/OAuthInfo",
       "esri/IdentityManager",
+      "dojo/dom-style", 
+      "dojo/dom-attr",
+      "dojo/dom",
+      "dojo/on" , 
 
       "esri/tasks/query",
 
@@ -56,28 +60,67 @@
 
       "dojo/domReady!"
     ], function(
-      geometryEngine, dom, array, Color, parser, registry,
+      geometryEngine,  array, Color, parser, registry,
       Map,Search, esriLang, Graphic, InfoTemplate, GraphicsLayer,FeatureLayer, SimpleRenderer,
       Point, FeatureSet,
       ClosestFacilityTask, ClosestFacilityParameters,
-      SimpleMarkerSymbol, SimpleLineSymbol,arcgisPortal,OAuthInfo,esriId , Query , dojoJson , 
-       all , fx 
+      SimpleMarkerSymbol, SimpleLineSymbol,arcgisPortal,OAuthInfo,esriId ,domStyle, domAttr,dom, on, Query , dojoJson , 
+       all , fx , 
     ) {
-      var incidentsGraphicsLayer , geoAmbulance ;
-     
-
+      
       parser.parse();
 
       var info = new OAuthInfo({
-        appId: "y62LHg9sepTcEzb0" ,//localhost
-        // Uncomment the next line and update if using your own portal
-        portalUrl: "https://localhost:10001/arcgis",
-        // Uncomment the next line to prevent the user's signed in state from being shared
-        // with other apps on the same domain with the same authNamespace value.
-        //authNamespace: "portal_oauth_popup",
-        popup: false
-      });
-      esriId.registerOAuthInfos([info]);
+      appId: "q244Lb8gDRgWQ8hM",
+      // Uncomment the next line and update if using your own portal
+      // portalUrl: "https://<host>:<port>/arcgis",
+      // Uncomment the next line to prevent the user's signed in state from being shared
+      // with other apps on the same domain with the same authNamespace value.
+      //authNamespace: "portal_oauth_inline",
+      popup: false
+    });
+    esriId.registerOAuthInfos([info]);
+
+    esriId.checkSignInStatus(info.portalUrl + "/sharing").then(
+      function (){
+        displayMap();
+      }
+    ).otherwise(
+      function (){
+        // Anonymous view
+        domStyle.set("anonymousPanel", "display", "block");
+        domStyle.set("personalizedPanel", "display", "none");
+      }
+    );
+
+    on(dom.byId("sign-in"), "click", function (){
+      console.log("click", arguments);
+      // user will be redirected to OAuth Sign In page
+      esriId.getCredential(info.portalUrl + "/sharing");
+    });
+
+    on(dom.byId("sign-out"), "click", function (){
+      esriId.destroyCredentials();
+      window.location.reload();
+    });
+
+    function displayMap () {
+      var incidentsGraphicsLayer , geoAmbulance ;
+
+      new arcgisPortal.Portal(info.portalUrl).signIn().then(
+        function (portalUser){
+          console.log("Signed in to the portal: ", portalUser);
+
+          domAttr.set("userId", "innerHTML", portalUser.fullName);
+          domStyle.set("anonymousPanel", "display", "none");
+          domStyle.set("personalizedPanel", "display", "block");
+          
+        }
+      ).otherwise(
+        function (error){
+          console.log("Error occurred while signing in: ", error);
+        }
+      ) 
 
       /*** Creating a map ***/
       map = new Map("map", {
@@ -203,11 +246,22 @@
        
 
       }
-    });
+
+    };
+  });
   </script>
 </head>
 
-<body>
+<body class="claro">
+  <div id="anonymousPanel" style="display: none; padding: 5px; text-align: center;">
+    <span id="sign-in" class="action">Sign In</span> To access the map App.
+  </div>
+
+  <div id="personalizedPanel" style="display: none ">
+    Welcome <span id="userId" style="font-weight: bold;"></span>
+     - 
+    <span id="sign-out" class="action">Sign Out</span>
+  </div>
 
   <div id="map" class="map">
     <div id="search"></div>
