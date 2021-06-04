@@ -1,17 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
-  <title>Closest Facilities</title>
 
-  <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
-  <link rel="stylesheet" href="https://js.arcgis.com/3.36compact/dijit/themes/claro/claro.css">
-  <link rel="stylesheet" href="styles/style.css">
-  
-  <script src="https://js.arcgis.com/3.36/"></script>
-  <script>
     var map, params;
     require([
      
@@ -234,24 +221,4 @@
 
     };
   });
-  </script>
-</head>
 
-<body class="claro">
-  <div id="anonymousPanel" style="display: none; padding: 5px; text-align: center;">
-    <span id="sign-in" class="action">Sign In</span> and view your ArcGIS Online items.
-  </div>
-
-  <div id="personalizedPanel" style="display: none; padding: 5px; text-align: center;">
-    Welcome <span id="userId" style="font-weight: bold;"></span>
-     - 
-    <span id="sign-out" class="action">Sign Out</span>
-  </div>
-
-  <div id="map" class="map">
-    <div id="search"></div>
-    <div id="HomeButton"></div>
-  </div>
-
-</body>
-</html>
