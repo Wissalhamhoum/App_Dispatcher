@@ -2,14 +2,16 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
   <title>Dispatcher's App</title>
 
+  <link rel="stylesheet" href="https://js.arcgis.com/3.36/dijit/themes/claro/claro.css">
   <link rel="stylesheet" href="https://js.arcgis.com/3.36/esri/css/esri.css">
   <link rel="stylesheet" href="styles/style.css">
-  
   <script src="https://js.arcgis.com/3.36/"></script>
+  <script src="scripts/script.js"></script>
+
   <script>
     var map; 
     require([
@@ -83,13 +85,12 @@
       function (){
         // Anonymous view
         domStyle.set("anonymousPanel", "display", "block");
+        domStyle.set("image", "display", "block");
         domStyle.set("personalizedPanel", "display", "none");
       }
     );
 
     on(dom.byId("sign-in"), "click", function (){
-      console.log("click", arguments);
-      // user will be redirected to OAuth Sign In page
       esriId.getCredential(info.portalUrl + "/sharing");
     });
 
@@ -99,16 +100,16 @@
     });
 
     function displayMap () {
-      var incidentsGraphicsLayer , geoAmbulance ;
+      var incidentsGraphicsLayer , geoAmbulance , bufferDistance = 50 ;
+      var workerID= 0;
 
       new arcgisPortal.Portal(info.portalUrl).signIn().then(
         function (portalUser){
-          console.log("Signed in to the portal: ", portalUser);
-
           domAttr.set("userId", "innerHTML", portalUser.fullName);
           domStyle.set("anonymousPanel", "display", "none");
+          domStyle.set("image", "display", "none");
           domStyle.set("personalizedPanel", "display", "block");
-          
+          domStyle.set("controls", "display", "inline");
         }
       ).otherwise(
         function (error){
@@ -125,7 +126,7 @@
       });
 
       var search = new Search({
-          map: map
+          map: map 
         }, "search");
       search.startup();
 
@@ -144,8 +145,6 @@
 
       map.on("load", function(evtObj) {
         var map = evtObj.target;
-
-       /* this creates the symbol of the incident it's ugly but we should cope with it for now */
         var incidentPointSymbol = new SimpleMarkerSymbol(
           SimpleMarkerSymbol.STYLE_CIRCLE,
           16,
@@ -163,24 +162,31 @@
         incidentsGraphicsLayer.setRenderer(incidentsRenderer);
         map.addLayer(incidentsGraphicsLayer);
 
-        /*the following code querys the graphics of the feature layer so later on we can use the geomtry to calculate the distance */
+        /*Extraction des points géometrique pour les utiliser dans le calcule des distance */
+        ambulanceLayer.refresh() ;
         map.addLayer(ambulanceLayer);
         ambulanceLayer.on ("load", function() {
           var query = new Query();
             query.where = "1=1";
             ambulanceLayer.selectFeatures(query, FeatureLayer.SELECTION_NEW, function(result){
-              console.log( "go ahead this part is fine");
               geoAmbulance = result //retourne les coordonnées des ambulances
             }) 
         });
 
       });
 
-     /*this  is useless for now*/
-      /*registry.byId("numLocations").on("change", function() {
-        params.defaultTargetFacilityCount = this.value;
+
+      on(dom.byId("ClearMission"), "click", function (){
+      clearGraphics() ;
+      map.infoWindow.hide();
+      });
+
+      registry.byId("BufferDistance").on("change", function() {
+        bufferDistance = this.value;
         clearGraphics();
-      });*/
+        map.infoWindow.hide();
+
+      });
 
       function clearGraphics() {
         //clear graphics
@@ -192,11 +198,22 @@
         clearGraphics();
         var inPoint = new Point(evt.mapPoint.x, evt.mapPoint.y, map.spatialReference);
         var location = new Graphic(inPoint);
-        console.log("location", location);
         incidentsGraphicsLayer.add(location);
-        console.log(incidentsGraphicsLayer.graphics[0]);
+        var link=txtcontent();
+        
+        //affichage de la Info Window
         if (ambulanceLayer.loaded) {
           findClosestAmbulance (inPoint ,geoAmbulance)
+          if (workerID!=0){
+          map.infoWindow.setTitle("NEW ASSIGNMENT");
+          map.infoWindow.setContent ( "the closest ambulance driver's name is : "+workerID + "<br />" + link);
+          map.infoWindow.show(evt.screenPoint,map.getInfoWindowAnchor(evt.screenPoint));
+          }
+          else{
+          map.infoWindow.setTitle("");
+          map.infoWindow.setContent ( "no ambulance is available" );
+          map.infoWindow.show(evt.screenPoint,map.getInfoWindowAnchor(evt.screenPoint)); 
+          }
         } else {
           console.log ("loading"); 
         }
@@ -204,11 +221,12 @@
         
       }
 
+      //retourne l'ambulance la plus proche
       function findClosestAmbulance (inPoint , ambulanceFeatures) {
         var minDistance = Infinity;
         var distance ; 
         var closestAmbulance = 0 ; 
-        var buffer =  geometryEngine.geodesicBuffer(inPoint, 50 , "kilometers") ; 
+        var buffer =  geometryEngine.geodesicBuffer(inPoint, bufferDistance , "kilometers") ; 
         var closestAmbulances = [] ; 
         workerID=0;
         
@@ -223,7 +241,9 @@
 
         while (x < closestAmbulances.length) {
           distance= geometryEngine.distance(inPoint , closestAmbulances[x].geometry , "kilometers" );
-          if ( distance < minDistance && ambulanceFeatures[x].attributes.status == 1 ) { // status == 0 => ne travaille pas , status == 1 => travail , status == 2 => en pause: so we will consider the status == 2 as the one refering to a free(libre) ambance
+          // status == 0 => ne travaille pas , status == 1 => travail , status == 2 => en pause 
+          //Pour notre cas on va considèrer que l'ambulance est libre si son status est égal à 1 
+          if ( distance < minDistance && ambulanceFeatures[x].attributes.status == 1 ) {
             minDistance = distance;
             closestAmbulance = closestAmbulances[x]; 
           }
@@ -233,65 +253,49 @@
         if (closestAmbulance === 0 ) {
           console.log("no ambulance is available ")
         } else {
-          console.log(closestAmbulance); 
-          console.log("the closest ambulance driver", closestAmbulance.attributes.name); //displayes the name of the selected worker
-          console.log("the selected worker's ID ", closestAmbulance.attributes);
           workerID=closestAmbulance.attributes.name
-          //ambulanceLayer.hide() ;
-          //incidentsGraphicsLayer.add(closestAmbulance);
         }
       }
-
-      
 
       function txtcontent (){
-        return "<a target='_blank' href=https://geo-tebourbi.maps.arcgis.com/apps/workforce/projects/d226fe44b9f34a3ca59dd606edd5801c/dispatch/assignments/new>assing mission to the closest worker</a>";
+        return "<a target='_blank' href=https://geo-tebourbi.maps.arcgis.com/apps/workforce/projects/d226fe44b9f34a3ca59dd606edd5801c/dispatch/assignments/new>assign mission to the closest worker</a>";
       }
-      map.on("click", function(evt) {
-        var link=txtcontent();
-        var p = new Point(evt.mapPoint.x, evt.mapPoint.y, map.spatialReference);
-        console.log(p);
-        
-        if (workerID!=0){
-          map.infoWindow.setTitle("NEW ASSIGNMENT");
-          map.infoWindow.setContent ( "the closest ambulance driver's name is : "+workerID + "<br />" + link);
-          map.infoWindow.show(evt.screenPoint,map.getInfoWindowAnchor(evt.screenPoint));
-        }
-        else{
-          map.infoWindow.setTitle("");
-          map.infoWindow.setContent ( "no ambulance is available" );
-          map.infoWindow.show(evt.screenPoint,map.getInfoWindowAnchor(evt.screenPoint)); 
-        }
-      })
     };
   });
   </script>
 </head>
 
-<body>
+<body class="claro">
   <header>
     <div id="anonymousPanel" style="display: none;">
-      <span id="sign-in" class="action">Sign In</span> To access the map App.
+      <span id="sign-in" class="action">Sign In</span> To get Started.
     </div>
     <div id="personalizedPanel" style="display: none;">
-      Welcome <span id="userId" style="font-weight: bold;"></span>
+      User <span id="userId" style="font-weight: bold;"></span>
        - 
       <span id="sign-out" class="action">Sign Out</span>
     </div>
-    <!--<div id="sidebar">
-      <div id="personalizedPanel" style="display: none ">
-        Welcome <span id="userId" style="font-weight: bold;"></span>
-         - 
-        <span id="sign-out" class="action">Sign Out</span>
-        <button id="startMission">Start mission</button>
-        <button id="ClearMission">Clear mission</button>
-      </div>
-    </div>-->
+    
   </header>
+
+  <img src="img/ambulance.png" alt="Dispatcher's app logo" id ="image" style ="display: none;">
+
   <div id="map" class="map">
     <div id="search"></div>
-    <div id="HomeButton"></div>
   </div>
-
+  <div id="controls" style = "display: none;">
+    <div style="padding: 0 0 1em 0 ;"> Choisir la distance tampon.</div>
+    <div>
+      <select id="BufferDistance" name="BufferDistance" value="50"  data-dojo-type="dijit/form/ComboBox" style="width:100%; height: 22px; border-color:#82c0cc;" >
+        <option selected="selected">50</option>
+        <option>10</option>
+        <option>25</option>
+        <option>75</option>
+    </select>
+    </div>
+    <div style="padding-top: 1em ;">
+      <button id="ClearMission">Effacer le point</button>
+    </div>
+  </div>
 </body>
 </html>

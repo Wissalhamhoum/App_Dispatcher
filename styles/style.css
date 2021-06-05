@@ -5,12 +5,13 @@ html, body {
   }
 
  #anonymousPanel, #personalizedPanel {
-    background-color: #1F1F1F;
+    background-color: #3a3a3a;
     padding: 15px; 
     text-align: center; 
     color: white;
     
   }
+
   #map {
     z-index: 0 !important;
     padding:0;
@@ -18,39 +19,23 @@ html, body {
     height:100%;
   }
   
-  #HomeButton {
-    position: absolute;
-    top: 95px;
-    left: 20px;
-    z-index: 50;
-  }
-  #LocateButton {
-    position: absolute;
-    top: 140px;
-    left: 20px;
-    z-index: 50;
+ 
+  .esriSimpleSlider  {
+    box-shadow: 0 6px 6px -6px #999;
+
   }
 
   #search {
-    z-index: 1 !important;
+    z-index: 30 !important;
     display: block;
     position: absolute;
     top: 68px;
     left: 74px;
+    box-shadow: 0 6px 6px -6px #999;
 
-  }
-
-  #sidebar {
-    z-index: 1 !important;
-    position: relative;
-    float: Right;
-    padding: 0px;
-    text-align: center;
-    width: 20%;
   }
 
   
-
   #image{
     margin: 0;
     position: absolute;
@@ -67,20 +52,47 @@ html, body {
     outline: none;
     border: none;
     background-color: #82c0cc ;
-    width: 150px;
-    height: 35px;
-    border-radius: 30px;
+    width: 100%;
+    height: 38px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 200;
     color: white;
     background-size: 100% 100%;
     margin-bottom: 15px;
+    transition-duration: 0.4s;
+  }
+
+  button:hover {
+    background-color: #fff; 
+    border: 2px solid #82c0cc;
+    color: #82c0cc;
   }
 
   .action {
-    color: blue;
+    color: #82c0cc;
     cursor: pointer;
     text-decoration: underline;
   }
+
+  #controls {
+    background: #fff;
+    box-shadow: 0 6px 6px -6px #999;
+    color: #444;
+    font-family: sans-serif;
+    height: auto;
+    right: 1em;
+    padding: 1em;
+    position: absolute;
+    top: 4.25em;
+    width: auto;
+    z-index: 20;
+
+    
+  }
+
+  #controls div {
+    padding: 0 ;
+  }
+
 
   
